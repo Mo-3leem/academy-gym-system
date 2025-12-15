@@ -1,0 +1,177 @@
+/* Reset + Dark Theme */
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Layout */
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  background: #161b22;
+  padding: 18px 24px;
+  border-bottom: 1px solid #21262d;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.nav-buttons button {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #21262d;
+  color: #e6edf3;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: 0.15s;
+}
+
+.nav-buttons button:hover {
+  background: #30363d;
+}
+
+.nav-buttons button.active {
+  background: #2ea044;
+  color: white;
+}
+
+.page-container {
+  padding: 24px;
+  flex: 1;
+  display: grid;
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Cards */
+.card {
+  background: #161b22;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #21262d;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.card h2,
+.card h3 {
+  margin-top: 0;
+}
+
+/* Forms */
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+textarea {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  padding: 8px 10px;
+  color: #e6edf3;
+  font-size: 0.95rem;
+  border-radius: 6px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #2ea044;
+}
+
+/* Submit Buttons */
+button[type="submit"],
+.card button {
+  background: #2ea044;
+  border: none;
+  padding: 10px 18px;
+  color: white;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+}
+
+button[type="submit"]:hover,
+.card button:hover {
+  background: #27933b;
+}
+
+/* Lists */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list li {
+  padding: 6px 0;
+  border-bottom: 1px solid #21262d;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.settings-tabs button {
+  background: #21262d;
+  border-radius: 6px;
+  padding: 8px 16px;
+  border: none;
+  color: #e6edf3;
+  cursor: pointer;
+}
+
+.settings-tabs button.active {
+  background: #2ea044;
+}
+
+/* 2-Column Grid */
+.settings-grid {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 900px) {
+  .settings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
