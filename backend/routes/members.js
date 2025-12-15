@@ -1,43 +1,35 @@
 const express = require("express");
 const router = express.Router();
-const Member = require("../models/Member");
-
-// Generate code for new member
-async function generateMemberCode() {
-  const count = await Member.countDocuments();
-  const number = (count + 1).toString().padStart(4, "0");
-  return `FA-${number}`;
-}
-
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+const prisma = require("../prismaClient");
 
 // Create a new member
 router.post("/", async (req, res) => {
   try {
     const { name, phone, gender, birthDate, interests, notes } = req.body;
 
-    const code = await generateMemberCode();
+    const member = await prisma.$transaction(async (tx) => {
+      const created = await tx.member.create({
+        data: {
+          name,
+          phone: phone || null,
+          gender: gender || null,
+          birthDate: birthDate ? new Date(birthDate) : null,
+          interests: interests ?? null,
+          notes: notes || null,
+        },
+      });
 
-    const member = new Member({
-      code,
-      name,
-      phone,
-      gender,
-      birthDate,
-      interests,
-      notes,
+      const code = `FA-${String(created.id).padStart(4, "0")}`;
+
+      return tx.member.update({
+        where: { id: created.id },
+        data: { code },
+      });
     });
 
-    await member.save();
-
-    res.status(201).json({
-      message: "✅ تم إضافة العضو بنجاح",
-      member,
-    });
+    res.status(201).json({ message: "✅ تم إضافة العضو بنجاح", member });
   } catch (err) {
-    console.error("Error while creating member:", err);
+    console.error(err);
     res
       .status(500)
       .json({ message: "❌ حدث خطأ أثناء إضافة العضو", error: err.message });
@@ -47,23 +39,26 @@ router.post("/", async (req, res) => {
 // Get all members with optional search (name, phone, code)
 router.get("/", async (req, res) => {
   try {
-    const { search } = req.query;
-    let query = {};
+    const search = (req.query.search || "").trim();
 
-    if (search && search.trim() !== "") {
-      const safe = escapeRegex(search.trim());
-      const regex = new RegExp(safe, "i");
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search } },
+            { phone: { contains: search } },
+            { code: { contains: search } },
+          ],
+        }
+      : {};
 
-      query = {
-        $or: [{ name: regex }, { phone: regex }, { code: regex }],
-      };
-    }
-
-    const members = await Member.find(query).sort({ createdAt: -1 }).lean();
+    const members = await prisma.member.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
 
     res.json(members);
   } catch (err) {
-    console.error("Error while fetching members:", err);
+    console.error(err);
     res
       .status(500)
       .json({ message: "❌ حدث خطأ أثناء جلب الأعضاء", error: err.message });
@@ -73,19 +68,20 @@ router.get("/", async (req, res) => {
 // Get single member by id
 router.get("/:id", async (req, res) => {
   try {
-    const member = await Member.findById(req.params.id).lean();
+    const id = Number(req.params.id);
 
-    if (!member) {
-      return res.status(404).json({ message: "العضو غير موجود" });
-    }
+    const member = await prisma.member.findUnique({ where: { id } });
+    if (!member) return res.status(404).json({ message: "العضو غير موجود" });
 
     res.json(member);
   } catch (err) {
-    console.error("Error while fetching member by id:", err);
-    res.status(500).json({
-      message: "❌ حدث خطأ أثناء جلب بيانات العضو",
-      error: err.message,
-    });
+    console.error(err);
+    res
+      .status(500)
+      .json({
+        message: "❌ حدث خطأ أثناء جلب بيانات العضو",
+        error: err.message,
+      });
   }
 });
 

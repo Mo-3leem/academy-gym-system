@@ -1,12 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const Sport = require("../models/Sport");
+const prisma = require("../prismaClient");
 
-// create a new sport
 router.post("/", async (req, res) => {
   try {
-    const sport = new Sport(req.body);
-    await sport.save();
+    const sport = await prisma.sport.create({ data: { name: req.body.name } });
     res.status(201).json({ message: "تم إضافة الرياضة", sport });
   } catch (err) {
     console.error(err);
@@ -14,10 +12,9 @@ router.post("/", async (req, res) => {
   }
 });
 
-// get all sports
 router.get("/", async (req, res) => {
   try {
-    const sports = await Sport.find().sort({ name: 1 });
+    const sports = await prisma.sport.findMany({ orderBy: { name: "asc" } });
     res.json(sports);
   } catch (err) {
     console.error(err);

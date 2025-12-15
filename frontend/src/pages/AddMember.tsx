@@ -10,7 +10,7 @@ interface MemberForm {
   interests: {
     gym: boolean;
     academy: boolean;
-    academySports: string[]; // IDs of sports
+    academySports: number[]; // numeric IDs now
   };
   notes: string;
 }
@@ -67,7 +67,7 @@ const AddMember: React.FC = () => {
     }));
   };
 
-  const handleSportSelect = (sportId: string) => {
+  const handleSportSelect = (sportId: number) => {
     setForm((prev) => {
       const exists = prev.interests.academySports.includes(sportId);
       return {
@@ -185,11 +185,11 @@ const AddMember: React.FC = () => {
             )}
             {!loadingSports &&
               sports.map((sport) => (
-                <label key={sport._id} style={{ display: "block" }}>
+                <label key={sport.id} style={{ display: "block" }}>
                   <input
                     type="checkbox"
-                    checked={form.interests.academySports.includes(sport._id)}
-                    onChange={() => handleSportSelect(sport._id)}
+                    checked={form.interests.academySports.includes(sport.id)}
+                    onChange={() => handleSportSelect(sport.id)}
                   />
                   {sport.name}
                 </label>

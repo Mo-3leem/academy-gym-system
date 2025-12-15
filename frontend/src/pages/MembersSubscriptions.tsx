@@ -26,23 +26,24 @@ const MembersSubscriptions: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
 
-  // بيانات الفورم لإنشاء اشتراك
   const [subType, setSubType] = useState<"gym" | "sport">("gym");
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState<number | "">("");
+
   const [sports, setSports] = useState<Sport[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
-  const [selectedSportId, setSelectedSportId] = useState("");
-  const [selectedGroupId, setSelectedGroupId] = useState("");
-  const [selectedCoachId, setSelectedCoachId] = useState("");
+
+  const [selectedSportId, setSelectedSportId] = useState<number | "">("");
+  const [selectedGroupId, setSelectedGroupId] = useState<number | "">("");
+  const [selectedCoachId, setSelectedCoachId] = useState<number | "">("");
+
   const [privateTrainer, setPrivateTrainer] = useState(false);
   const [classTypesInput, setClassTypesInput] = useState("");
   const [startDate, setStartDate] = useState("");
 
   const [creatingSub, setCreatingSub] = useState(false);
 
-  // البحث عن الأعضاء
   const handleSearchMembers = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -57,13 +58,13 @@ const MembersSubscriptions: React.FC = () => {
     }
   };
 
-  // عند اختيار عضو
   const handleSelectMember = async (member: Member) => {
     setSelectedMember(member);
     setSubscriptions([]);
     setLoadingSubs(true);
+
     try {
-      const subs = await getMemberSubscriptions(member._id);
+      const subs = await getMemberSubscriptions(member.id);
       setSubscriptions(subs);
     } catch (err) {
       console.error(err);
@@ -72,7 +73,6 @@ const MembersSubscriptions: React.FC = () => {
       setLoadingSubs(false);
     }
 
-    // إعادة ضبط فورم الاشتراك
     setSubType("gym");
     setSelectedPlanId("");
     setSelectedSportId("");
@@ -82,7 +82,6 @@ const MembersSubscriptions: React.FC = () => {
     setClassTypesInput("");
     setStartDate("");
 
-    // تحميل الخطط (جيم افتراضيًا)
     try {
       const gymPlans = await getPlans("gym");
       setPlans(gymPlans);
@@ -95,7 +94,6 @@ const MembersSubscriptions: React.FC = () => {
     }
   };
 
-  // عند تغيير نوع الاشتراك (جيم / رياضة)
   const handleChangeSubType = async (value: "gym" | "sport") => {
     setSubType(value);
     setSelectedPlanId("");
@@ -114,10 +112,16 @@ const MembersSubscriptions: React.FC = () => {
     }
   };
 
-  // عند اختيار رياضة → نجيب الجروبات
-  const handleSelectSport = async (sportId: string) => {
+  const handleSelectSport = async (sportIdRaw: string) => {
+    const sportId = sportIdRaw ? Number(sportIdRaw) : "";
     setSelectedSportId(sportId);
     setSelectedGroupId("");
+
+    if (sportId === "") {
+      setGroups([]);
+      return;
+    }
+
     try {
       const grps = await getGroups(sportId);
       setGroups(grps);
@@ -127,36 +131,27 @@ const MembersSubscriptions: React.FC = () => {
     }
   };
 
-  // إنشاء اشتراك جديد
   const handleCreateSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMember) {
-      alert("من فضلك اختر عضو أولاً");
-      return;
-    }
-    if (!selectedPlanId) {
-      alert("من فضلك اختر خطة اشتراك");
-      return;
-    }
+
+    if (!selectedMember) return alert("من فضلك اختر عضو أولاً");
+    if (selectedPlanId === "") return alert("من فضلك اختر خطة اشتراك");
 
     const payload: CreateSubscriptionPayload = {
-      memberId: selectedMember._id,
+      memberId: selectedMember.id,
       planId: selectedPlanId,
       type: subType,
     };
 
-    if (startDate) {
-      payload.startDate = startDate;
-    }
+    if (startDate) payload.startDate = startDate;
 
     if (subType === "sport") {
-      if (!selectedSportId || !selectedGroupId) {
-        alert("من فضلك اختر رياضة وجروب");
-        return;
+      if (selectedSportId === "" || selectedGroupId === "") {
+        return alert("من فضلك اختر رياضة وجروب");
       }
       payload.sportId = selectedSportId;
       payload.groupId = selectedGroupId;
-      if (selectedCoachId) payload.coachId = selectedCoachId;
+      if (selectedCoachId !== "") payload.coachId = selectedCoachId;
     }
 
     if (subType === "gym") {
@@ -174,11 +169,9 @@ const MembersSubscriptions: React.FC = () => {
       await createSubscription(payload);
       alert("✅ تم إنشاء الاشتراك بنجاح");
 
-      // إعادة تحميل الاشتراكات
-      const subs = await getMemberSubscriptions(selectedMember._id);
+      const subs = await getMemberSubscriptions(selectedMember.id);
       setSubscriptions(subs);
 
-      // إعادة ضبط فورم الاشتراك
       setSelectedPlanId("");
       setSelectedSportId("");
       setSelectedGroupId("");
@@ -198,13 +191,8 @@ const MembersSubscriptions: React.FC = () => {
     <div style={{ display: "grid", gap: 20 }}>
       <h2>الأعضاء والاشتراكات</h2>
 
-      {/* البحث عن عضو */}
       <section
-        style={{
-          border: "1px solid #ddd",
-          padding: 10,
-          borderRadius: 4,
-        }}
+        style={{ border: "1px solid #ddd", padding: 10, borderRadius: 4 }}
       >
         <h3>بحث عن عضو</h3>
         <form
@@ -227,7 +215,7 @@ const MembersSubscriptions: React.FC = () => {
             <h4>نتائج البحث:</h4>
             {members.map((m) => (
               <div
-                key={m._id}
+                key={m.id}
                 style={{
                   padding: 6,
                   border: "1px solid #ccc",
@@ -235,30 +223,26 @@ const MembersSubscriptions: React.FC = () => {
                   marginBottom: 4,
                   cursor: "pointer",
                   backgroundColor:
-                    selectedMember?._id === m._id ? "#e6f4ff" : "white",
+                    selectedMember?.id === m.id ? "#e6f4ff" : "white",
                 }}
                 onClick={() => handleSelectMember(m)}
               >
-                <strong>{m.name}</strong> — {m.phone} — كود: {m.code}
+                <strong>{m.name}</strong> — {m.phone ?? "-"} — كود:{" "}
+                {m.code ?? "-"}
               </div>
             ))}
           </div>
         )}
       </section>
 
-      {/* بيانات عضو + الاشتراكات + فورم اشتراك جديد */}
       {selectedMember && (
         <section
-          style={{
-            border: "1px solid #ddd",
-            padding: 10,
-            borderRadius: 4,
-          }}
+          style={{ border: "1px solid #ddd", padding: 10, borderRadius: 4 }}
         >
           <h3>بيانات العضو المختار</h3>
           <p>الاسم: {selectedMember.name}</p>
-          <p>الكود: {selectedMember.code}</p>
-          <p>الهاتف: {selectedMember.phone}</p>
+          <p>الكود: {selectedMember.code ?? "-"}</p>
+          <p>الهاتف: {selectedMember.phone ?? "-"}</p>
 
           <hr />
 
@@ -270,7 +254,7 @@ const MembersSubscriptions: React.FC = () => {
           {!loadingSubs &&
             subscriptions.map((sub) => (
               <div
-                key={sub._id}
+                key={sub.id}
                 style={{
                   border: "1px solid #ccc",
                   borderRadius: 4,
@@ -279,18 +263,21 @@ const MembersSubscriptions: React.FC = () => {
                 }}
               >
                 <p>النوع: {sub.type === "gym" ? "جيم" : "أكاديمية"}</p>
-                <p>الخطة: {sub.planId?.name ?? "-"}</p>
+                <p>الخطة: {sub.plan?.name ?? "-"}</p>
+
                 {sub.type === "sport" && (
                   <>
-                    <p>الرياضة: {sub.sportId?.name ?? "-"}</p>
-                    <p>الجروب: {sub.groupId?.name ?? "-"}</p>
-                    <p>المدرب: {sub.coachId?.name ?? "-"}</p>
+                    <p>الرياضة: {sub.sport?.name ?? "-"}</p>
+                    <p>الجروب: {sub.group?.name ?? "-"}</p>
+                    <p>المدرب: {sub.coach?.name ?? "-"}</p>
                   </>
                 )}
+
                 <p>
                   من: {new Date(sub.startDate).toLocaleDateString("ar-EG")} |
                   إلى: {new Date(sub.endDate).toLocaleDateString("ar-EG")}
                 </p>
+
                 <p>
                   الحالة:{" "}
                   {sub.status === "active"
@@ -325,13 +312,17 @@ const MembersSubscriptions: React.FC = () => {
             <label>
               الخطة:
               <select
-                value={selectedPlanId}
-                onChange={(e) => setSelectedPlanId(e.target.value)}
+                value={selectedPlanId === "" ? "" : String(selectedPlanId)}
+                onChange={(e) =>
+                  setSelectedPlanId(
+                    e.target.value ? Number(e.target.value) : ""
+                  )
+                }
               >
                 <option value="">اختر الخطة</option>
                 {plans.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name} ({p.durationDays} يوم)
+                  <option key={p.id} value={p.id}>
+                    {p.name ?? "خطة"} ({p.durationDays} يوم)
                   </option>
                 ))}
               </select>
@@ -351,12 +342,14 @@ const MembersSubscriptions: React.FC = () => {
                 <label>
                   الرياضة:
                   <select
-                    value={selectedSportId}
+                    value={
+                      selectedSportId === "" ? "" : String(selectedSportId)
+                    }
                     onChange={(e) => handleSelectSport(e.target.value)}
                   >
                     <option value="">اختر رياضة</option>
                     {sports.map((s) => (
-                      <option key={s._id} value={s._id}>
+                      <option key={s.id} value={s.id}>
                         {s.name}
                       </option>
                     ))}
@@ -366,13 +359,19 @@ const MembersSubscriptions: React.FC = () => {
                 <label>
                   الجروب:
                   <select
-                    value={selectedGroupId}
-                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                    value={
+                      selectedGroupId === "" ? "" : String(selectedGroupId)
+                    }
+                    onChange={(e) =>
+                      setSelectedGroupId(
+                        e.target.value ? Number(e.target.value) : ""
+                      )
+                    }
                   >
                     <option value="">اختر الجروب</option>
                     {groups.map((g) => (
-                      <option key={g._id} value={g._id}>
-                        {g.name} {g.schedule ? `(${g.schedule})` : ""}
+                      <option key={g.id} value={g.id}>
+                        {g.name}
                       </option>
                     ))}
                   </select>
@@ -381,12 +380,18 @@ const MembersSubscriptions: React.FC = () => {
                 <label>
                   المدرب (اختياري):
                   <select
-                    value={selectedCoachId}
-                    onChange={(e) => setSelectedCoachId(e.target.value)}
+                    value={
+                      selectedCoachId === "" ? "" : String(selectedCoachId)
+                    }
+                    onChange={(e) =>
+                      setSelectedCoachId(
+                        e.target.value ? Number(e.target.value) : ""
+                      )
+                    }
                   >
                     <option value="">بدون تحديد</option>
                     {coaches.map((c) => (
-                      <option key={c._id} value={c._id}>
+                      <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}

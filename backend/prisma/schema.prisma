@@ -1,0 +1,104 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Member {
+  id        Int      @id @default(autoincrement())
+  code      String?  @unique
+  name      String
+  phone     String?  @unique
+  gender    String?
+  birthDate DateTime?
+  interests Json?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  subscriptions Subscription[]
+  attendance    Attendance[]
+}
+
+model Sport {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  groups        Group[]
+  subscriptions Subscription[]
+}
+
+model Coach {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+
+  groups        Group[]
+  subscriptions Subscription[]
+}
+
+model Group {
+  id      Int    @id @default(autoincrement())
+  name    String
+
+  sportId Int
+  sport   Sport @relation(fields: [sportId], references: [id])
+
+  coachId Int?
+  coach   Coach? @relation(fields: [coachId], references: [id])
+
+  subscriptions Subscription[]
+}
+
+model Plan {
+  id           Int      @id @default(autoincrement())
+  type         String   // gym / sport
+  durationDays Int
+  price        Decimal? @db.Decimal(10,2)
+  name         String?
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id             Int      @id @default(autoincrement())
+  memberId       Int
+  planId         Int
+  type           String   // gym / sport
+  sportId        Int?
+  groupId        Int?
+  coachId        Int?
+  privateTrainer Boolean? @default(false)
+  classTypes     Json?
+  startDate      DateTime
+  endDate        DateTime
+  createdAt      DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
+  plan   Plan   @relation(fields: [planId], references: [id])
+  sport  Sport? @relation(fields: [sportId], references: [id])
+  group  Group? @relation(fields: [groupId], references: [id])
+  coach  Coach? @relation(fields: [coachId], references: [id])
+
+  attendance Attendance[]
+
+  @@index([memberId])
+  @@index([planId])
+  @@index([type])
+}
+
+model Attendance {
+  id             Int      @id @default(autoincrement())
+  memberId       Int
+  subscriptionId Int?
+  type           String?
+  createdAt      DateTime @default(now())
+
+  member       Member        @relation(fields: [memberId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([memberId, createdAt])
+}

@@ -5,40 +5,71 @@ const API_BASE = "http://localhost:5000/api";
 
 // ====== Types ======
 export interface Sport {
-  _id: string;
+  id: number;
   name: string;
-  description?: string;
 }
 
 export interface Member {
-  _id: string;
-  code: string;
+  id: number;
+  code: string | null;
   name: string;
-  phone: string;
+  phone: string | null;
+  gender?: string | null;
+  birthDate?: string | null;
+  interests?: unknown;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface Plan {
+  id: number;
+  name?: string | null;
+  type: "gym" | "sport";
+  durationDays: number;
+  price?: number | null;
+}
+
+export interface Coach {
+  id: number;
+  name: string;
+  phone?: string | null;
+}
+
+export interface Group {
+  id: number;
+  name: string;
+  sportId: number;
+  coachId?: number | null;
+
+  // when included from backend (include: { sport, coach })
+  sport?: Sport;
+  coach?: Coach | null;
 }
 
 export interface Subscription {
-  _id: string;
+  id: number;
   type: "gym" | "sport";
-  planId?: {
-    _id: string;
-    name: string;
-  };
-  sportId?: {
-    _id: string;
-    name: string;
-  };
-  groupId?: {
-    _id: string;
-    name: string;
-  };
-  coachId?: {
-    _id: string;
-    name: string;
-  };
+
+  memberId: number;
+  planId: number;
+  sportId?: number | null;
+  groupId?: number | null;
+  coachId?: number | null;
+
+  privateTrainer?: boolean | null;
+  classTypes?: unknown;
+
   startDate: string;
   endDate: string;
+
+  // computed in backend (via getSubscriptionStatus)
   status?: "active" | "expiringSoon" | "expired";
+
+  // when included from backend (include: { plan, sport, group, coach })
+  plan?: Plan;
+  sport?: Sport | null;
+  group?: Group | null;
+  coach?: Coach | null;
 }
 
 export interface AttendanceResponse {
@@ -47,43 +78,27 @@ export interface AttendanceResponse {
   subscriptions: Subscription[];
 }
 
-export interface Plan {
-  _id: string;
-  name: string;
-  type: "gym" | "sport";
-  durationDays: number;
-  price?: number;
-}
-
-export interface Coach {
-  _id: string;
-  name: string;
-  phone?: string;
-  specialty?: string;
-}
-
-export interface Group {
-  _id: string;
-  name: string;
-  sportId: Sport;
-  coachId?: Coach;
-  schedule?: string;
-}
-
 // ====== API functions ======
+
+// Sports
 export const getSports = async (): Promise<Sport[]> => {
   const res = await axios.get<Sport[]>(`${API_BASE}/sports`);
   return res.data;
 };
 
-export const createSport = async (data: {
-  name: string;
-  description?: string;
-}): Promise<void> => {
+export const createSport = async (data: { name: string }): Promise<void> => {
   await axios.post(`${API_BASE}/sports`, data);
 };
 
-export const createMember = async (data: unknown): Promise<void> => {
+// Members
+export const createMember = async (data: {
+  name: string;
+  phone?: string;
+  gender?: string;
+  birthDate?: string;
+  interests?: unknown;
+  notes?: string;
+}): Promise<void> => {
   await axios.post(`${API_BASE}/members`, data);
 };
 
@@ -94,6 +109,7 @@ export const searchMembers = async (search: string): Promise<Member[]> => {
   return res.data;
 };
 
+// Attendance
 export const registerAttendance = async (data: {
   search: string;
   type: "gym" | "sport";
@@ -114,7 +130,7 @@ export const getPlans = async (type?: "gym" | "sport"): Promise<Plan[]> => {
 };
 
 export const createPlan = async (data: {
-  name: string;
+  name?: string;
   type: "gym" | "sport";
   durationDays: number;
   price?: number;
@@ -131,13 +147,12 @@ export const getCoaches = async (): Promise<Coach[]> => {
 export const createCoach = async (data: {
   name: string;
   phone?: string;
-  specialty?: string;
 }): Promise<void> => {
   await axios.post(`${API_BASE}/coaches`, data);
 };
 
 // Groups
-export const getGroups = async (sportId?: string): Promise<Group[]> => {
+export const getGroups = async (sportId?: number): Promise<Group[]> => {
   const res = await axios.get<Group[]>(`${API_BASE}/groups`, {
     params: sportId ? { sportId } : {},
   });
@@ -146,23 +161,22 @@ export const getGroups = async (sportId?: string): Promise<Group[]> => {
 
 export const createGroup = async (data: {
   name: string;
-  sportId: string;
-  coachId?: string;
-  schedule?: string;
+  sportId: number;
+  coachId?: number;
 }): Promise<void> => {
   await axios.post(`${API_BASE}/groups`, data);
 };
 
 // Subscriptions
 export interface CreateSubscriptionPayload {
-  memberId: string;
-  planId: string;
+  memberId: number;
+  planId: number;
   type: "gym" | "sport";
-  sportId?: string;
-  groupId?: string;
-  coachId?: string;
+  sportId?: number;
+  groupId?: number;
+  coachId?: number;
   privateTrainer?: boolean;
-  classTypes?: string[];
+  classTypes?: unknown;
   startDate?: string;
 }
 
@@ -173,7 +187,7 @@ export const createSubscription = async (
 };
 
 export const getMemberSubscriptions = async (
-  memberId: string
+  memberId: number
 ): Promise<Subscription[]> => {
   const res = await axios.get<Subscription[]>(
     `${API_BASE}/subscriptions/member/${memberId}`

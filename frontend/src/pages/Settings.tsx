@@ -1,4 +1,3 @@
-// src/pages/Settings.tsx
 import React, { useEffect, useState } from "react";
 import {
   getSports,
@@ -22,23 +21,21 @@ const Settings: React.FC = () => {
 
   // Sports
   const [sports, setSports] = useState<Sport[]>([]);
-  const [sportForm, setSportForm] = useState({ name: "", description: "" });
+  const [sportForm, setSportForm] = useState({ name: "" });
 
   // Coaches
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [coachForm, setCoachForm] = useState({
     name: "",
     phone: "",
-    specialty: "",
   });
 
   // Groups
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupForm, setGroupForm] = useState({
     name: "",
-    sportId: "",
-    coachId: "",
-    schedule: "",
+    sportId: "" as "" | string, // will store numeric as string from <select>
+    coachId: "" as "" | string, // optional
   });
 
   // Plans
@@ -52,11 +49,11 @@ const Settings: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // تحميل البيانات حسب التاب الحالي
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+
         if (tab === "sports") {
           const s = await getSports();
           setSports(s);
@@ -90,7 +87,7 @@ const Settings: React.FC = () => {
     loadData();
   }, [tab]);
 
-  // 🥋 إضافة رياضة جديدة
+  // 🥋 Add sport
   const handleSportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sportForm.name.trim()) {
@@ -98,13 +95,10 @@ const Settings: React.FC = () => {
       return;
     }
     try {
-      await createSport({
-        name: sportForm.name.trim(),
-        description: sportForm.description.trim() || undefined,
-      });
+      await createSport({ name: sportForm.name.trim() });
       const s = await getSports();
       setSports(s);
-      setSportForm({ name: "", description: "" });
+      setSportForm({ name: "" });
       alert("✅ تم إضافة الرياضة");
     } catch (err) {
       console.error(err);
@@ -112,7 +106,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  // 🧑‍🏫 إضافة مدرب جديد
+  // 🧑‍🏫 Add coach
   const handleCoachSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!coachForm.name.trim()) {
@@ -123,11 +117,10 @@ const Settings: React.FC = () => {
       await createCoach({
         name: coachForm.name.trim(),
         phone: coachForm.phone.trim() || undefined,
-        specialty: coachForm.specialty.trim() || undefined,
       });
       const c = await getCoaches();
       setCoaches(c);
-      setCoachForm({ name: "", phone: "", specialty: "" });
+      setCoachForm({ name: "", phone: "" });
       alert("✅ تم إضافة المدرب");
     } catch (err) {
       console.error(err);
@@ -135,23 +128,24 @@ const Settings: React.FC = () => {
     }
   };
 
-  // 👥 إضافة جروب جديد
+  // 👥 Add group
   const handleGroupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!groupForm.name.trim() || !groupForm.sportId) {
       alert("من فضلك أدخل اسم الجروب وحدد الرياضة");
       return;
     }
+
     try {
       await createGroup({
         name: groupForm.name.trim(),
-        sportId: groupForm.sportId,
-        coachId: groupForm.coachId || undefined,
-        schedule: groupForm.schedule.trim() || undefined,
+        sportId: Number(groupForm.sportId),
+        coachId: groupForm.coachId ? Number(groupForm.coachId) : undefined,
       });
+
       const g = await getGroups();
       setGroups(g);
-      setGroupForm({ name: "", sportId: "", coachId: "", schedule: "" });
+      setGroupForm({ name: "", sportId: "", coachId: "" });
       alert("✅ تم إضافة الجروب");
     } catch (err) {
       console.error(err);
@@ -159,7 +153,7 @@ const Settings: React.FC = () => {
     }
   };
 
-  // 📅 إضافة خطة اشتراك جديدة
+  // 📅 Add plan
   const handlePlanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!planForm.name.trim() || !planForm.durationDays) {
@@ -173,6 +167,7 @@ const Settings: React.FC = () => {
         durationDays: Number(planForm.durationDays),
         price: planForm.price ? Number(planForm.price) : undefined,
       });
+
       const [gymPlans, sportPlans] = await Promise.all([
         getPlans("gym"),
         getPlans("sport"),
@@ -190,7 +185,6 @@ const Settings: React.FC = () => {
     <div className="settings-root">
       <h2>الإعدادات</h2>
 
-      {/* Tabs */}
       <div className="settings-tabs">
         <button
           className={tab === "sports" ? "active" : ""}
@@ -220,7 +214,7 @@ const Settings: React.FC = () => {
 
       {loading && <p>جاري تحميل البيانات...</p>}
 
-      {/* 🥋 تبويب الرياضات */}
+      {/* Sports */}
       {tab === "sports" && !loading && (
         <div className="settings-grid">
           <section className="card">
@@ -236,18 +230,6 @@ const Settings: React.FC = () => {
                   required
                 />
               </label>
-              <label>
-                وصف (اختياري):
-                <textarea
-                  value={sportForm.description}
-                  onChange={(e) =>
-                    setSportForm((f) => ({
-                      ...f,
-                      description: e.target.value,
-                    }))
-                  }
-                />
-              </label>
               <button type="submit">حفظ الرياضة</button>
             </form>
           </section>
@@ -257,9 +239,8 @@ const Settings: React.FC = () => {
             {sports.length === 0 && <p>لا توجد رياضات حتى الآن.</p>}
             <ul className="list">
               {sports.map((s) => (
-                <li key={s._id}>
+                <li key={s.id}>
                   <strong>{s.name}</strong>
-                  {s.description && <span> — {s.description}</span>}
                 </li>
               ))}
             </ul>
@@ -267,7 +248,7 @@ const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* 🧑‍🏫 تبويب المدربين */}
+      {/* Coaches */}
       {tab === "coaches" && !loading && (
         <div className="settings-grid">
           <section className="card">
@@ -292,18 +273,6 @@ const Settings: React.FC = () => {
                   }
                 />
               </label>
-              <label>
-                التخصص (مثال: كونغ فو، جيم...):
-                <input
-                  value={coachForm.specialty}
-                  onChange={(e) =>
-                    setCoachForm((f) => ({
-                      ...f,
-                      specialty: e.target.value,
-                    }))
-                  }
-                />
-              </label>
               <button type="submit">حفظ المدرب</button>
             </form>
           </section>
@@ -313,9 +282,8 @@ const Settings: React.FC = () => {
             {coaches.length === 0 && <p>لا يوجد مدربين حتى الآن.</p>}
             <ul className="list">
               {coaches.map((c) => (
-                <li key={c._id}>
+                <li key={c.id}>
                   <strong>{c.name}</strong>
-                  {c.specialty && <span> — {c.specialty}</span>}
                   {c.phone && <div>📞 {c.phone}</div>}
                 </li>
               ))}
@@ -324,7 +292,7 @@ const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* 👥 تبويب الجروبات */}
+      {/* Groups */}
       {tab === "groups" && !loading && (
         <div className="settings-grid">
           <section className="card">
@@ -352,7 +320,7 @@ const Settings: React.FC = () => {
                 >
                   <option value="">اختر الرياضة</option>
                   {sports.map((s) => (
-                    <option key={s._id} value={s._id}>
+                    <option key={s.id} value={String(s.id)}>
                       {s.name}
                     </option>
                   ))}
@@ -369,21 +337,11 @@ const Settings: React.FC = () => {
                 >
                   <option value="">بدون</option>
                   {coaches.map((c) => (
-                    <option key={c._id} value={c._id}>
+                    <option key={c.id} value={String(c.id)}>
                       {c.name}
                     </option>
                   ))}
                 </select>
-              </label>
-
-              <label>
-                المواعيد (مثال: الأحد والثلاثاء 6-7م):
-                <input
-                  value={groupForm.schedule}
-                  onChange={(e) =>
-                    setGroupForm((f) => ({ ...f, schedule: e.target.value }))
-                  }
-                />
               </label>
 
               <button type="submit">حفظ الجروب</button>
@@ -395,11 +353,10 @@ const Settings: React.FC = () => {
             {groups.length === 0 && <p>لا توجد جروبات حتى الآن.</p>}
             <ul className="list">
               {groups.map((g) => (
-                <li key={g._id}>
+                <li key={g.id}>
                   <strong>{g.name}</strong>
-                  <div>الرياضة: {g.sportId?.name}</div>
-                  {g.coachId && <div>المدرب: {g.coachId.name}</div>}
-                  {g.schedule && <div>المواعيد: {g.schedule}</div>}
+                  <div>الرياضة: {g.sport?.name ?? "-"}</div>
+                  <div>المدرب: {g.coach?.name ?? "-"}</div>
                 </li>
               ))}
             </ul>
@@ -407,7 +364,7 @@ const Settings: React.FC = () => {
         </div>
       )}
 
-      {/* 📅 تبويب الخطط */}
+      {/* Plans */}
       {tab === "plans" && !loading && (
         <div className="settings-grid">
           <section className="card">
@@ -477,8 +434,8 @@ const Settings: React.FC = () => {
             {plans.length === 0 && <p>لا توجد خطط بعد.</p>}
             <ul className="list">
               {plans.map((p) => (
-                <li key={p._id}>
-                  <strong>{p.name}</strong>{" "}
+                <li key={p.id}>
+                  <strong>{p.name ?? "خطة"}</strong>{" "}
                   {p.type === "gym" ? "— جيم" : "— أكاديمية"} — {p.durationDays}{" "}
                   يوم
                   {p.price !== undefined && p.price !== null && (

@@ -57,13 +57,13 @@ const Attendance: React.FC = () => {
         <div style={{ marginTop: 20 }}>
           <h3>بيانات العضو</h3>
           <p>الاسم: {result.member.name}</p>
-          <p>الكود: {result.member.code}</p>
-          <p>رقم الهاتف: {result.member.phone}</p>
+          <p>الكود: {result.member.code ?? "-"}</p>
+          <p>رقم الهاتف: {result.member.phone ?? "-"}</p>
 
           <h4>الاشتراكات</h4>
           {result.subscriptions.map((sub) => (
             <div
-              key={sub._id}
+              key={sub.id}
               style={{
                 border: "1px solid #ccc",
                 padding: 10,
@@ -72,7 +72,7 @@ const Attendance: React.FC = () => {
               }}
             >
               <p>النوع: {sub.type === "gym" ? "جيم" : "أكاديمية"}</p>
-              <p>الخطة: {sub.planId?.name ?? "-"}</p>
+              <p>الخطة: {sub.plan?.name ?? "-"}</p>
               <p>من: {new Date(sub.startDate).toLocaleDateString("ar-EG")}</p>
               <p>إلى: {new Date(sub.endDate).toLocaleDateString("ar-EG")}</p>
               <p>

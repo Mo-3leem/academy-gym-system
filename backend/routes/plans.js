@@ -1,12 +1,20 @@
 const express = require("express");
 const router = express.Router();
-const Plan = require("../models/Plan");
+const prisma = require("../prismaClient");
 
-// create a new plan
 router.post("/", async (req, res) => {
   try {
-    const plan = new Plan(req.body);
-    await plan.save();
+    const { type, durationDays, price, name } = req.body;
+
+    const plan = await prisma.plan.create({
+      data: {
+        type,
+        durationDays: Number(durationDays),
+        price: price ?? null,
+        name: name || null,
+      },
+    });
+
     res.status(201).json({ message: "تم إضافة الخطة", plan });
   } catch (err) {
     console.error(err);
@@ -14,12 +22,15 @@ router.post("/", async (req, res) => {
   }
 });
 
-// get all plans, optionally filtered by type
 router.get("/", async (req, res) => {
   try {
-    const { type } = req.query;
-    const query = type ? { type } : {};
-    const plans = await Plan.find(query).sort({ durationDays: 1 });
+    const type = req.query.type || null;
+
+    const plans = await prisma.plan.findMany({
+      where: type ? { type } : {},
+      orderBy: { durationDays: "asc" },
+    });
+
     res.json(plans);
   } catch (err) {
     console.error(err);

@@ -1,11 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const Subscription = require("../models/Subscription");
-const Member = require("../models/Member");
-const Plan = require("../models/Plan");
+const prisma = require("../prismaClient");
 const { getSubscriptionStatus } = require("../utils/subscriptionStatus");
 
-// create a new subscription
 router.post("/", async (req, res) => {
   try {
     const {
@@ -20,29 +17,29 @@ router.post("/", async (req, res) => {
       startDate,
     } = req.body;
 
-    const plan = await Plan.findById(planId);
-    if (!plan) {
-      return res.status(400).json({ message: "الخطة غير موجودة" });
-    }
+    const plan = await prisma.plan.findUnique({
+      where: { id: Number(planId) },
+    });
+    if (!plan) return res.status(400).json({ message: "الخطة غير موجودة" });
 
     const start = startDate ? new Date(startDate) : new Date();
     const end = new Date(start);
     end.setDate(end.getDate() + plan.durationDays);
 
-    const subscription = new Subscription({
-      memberId,
-      planId,
-      type,
-      sportId,
-      groupId,
-      coachId,
-      privateTrainer,
-      classTypes,
-      startDate: start,
-      endDate: end,
+    const subscription = await prisma.subscription.create({
+      data: {
+        memberId: Number(memberId),
+        planId: Number(planId),
+        type,
+        sportId: sportId ? Number(sportId) : null,
+        groupId: groupId ? Number(groupId) : null,
+        coachId: coachId ? Number(coachId) : null,
+        privateTrainer: privateTrainer ?? false,
+        classTypes: classTypes ?? null,
+        startDate: start,
+        endDate: end,
+      },
     });
-
-    await subscription.save();
 
     res.status(201).json({ message: "تم إنشاء الاشتراك بنجاح", subscription });
   } catch (err) {
@@ -51,17 +48,23 @@ router.post("/", async (req, res) => {
   }
 });
 
-// get subscriptions for a member
 router.get("/member/:memberId", async (req, res) => {
   try {
-    const subs = await Subscription.find({ memberId: req.params.memberId })
-      .populate("planId")
-      .populate("sportId")
-      .populate("groupId")
-      .populate("coachId");
+    const memberId = Number(req.params.memberId);
+
+    const subs = await prisma.subscription.findMany({
+      where: { memberId },
+      include: {
+        plan: true,
+        sport: true,
+        group: { include: { sport: true, coach: true } },
+        coach: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
     const withStatus = subs.map((sub) => ({
-      ...sub.toObject(),
+      ...sub,
       status: getSubscriptionStatus(sub),
     }));
 

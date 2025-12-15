@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const Coach = require("../models/Coach");
+const prisma = require("../prismaClient");
 
-// create a new coach
 router.post("/", async (req, res) => {
   try {
-    const coach = new Coach(req.body);
-    await coach.save();
+    const coach = await prisma.coach.create({
+      data: {
+        name: req.body.name,
+        phone: req.body.phone || null,
+      },
+    });
     res.status(201).json({ message: "تم إضافة المدرب", coach });
   } catch (err) {
     console.error(err);
@@ -14,10 +17,9 @@ router.post("/", async (req, res) => {
   }
 });
 
-// get all coaches
 router.get("/", async (req, res) => {
   try {
-    const coaches = await Coach.find().sort({ name: 1 });
+    const coaches = await prisma.coach.findMany({ orderBy: { name: "asc" } });
     res.json(coaches);
   } catch (err) {
     console.error(err);
